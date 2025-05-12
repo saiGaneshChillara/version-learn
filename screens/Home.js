@@ -1,26 +1,27 @@
-import { AntDesign } from '@expo/vector-icons';
-import { Video } from 'expo-av';
-import * as DocumentPicker from 'expo-document-picker';
-import { addDoc, collection, getDocs } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
+  View,
   Text,
   TextInput,
+  StyleSheet,
   TouchableOpacity,
-  View,
+  ScrollView,
+  Alert,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { Video } from 'expo-av';
+import { collection, addDoc, getDocs } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
+import { AntDesign } from '@expo/vector-icons';
 
 export default function Home() {
   const [subjects, setSubjects] = useState([]);
   const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [contentFilter, setContentFilter] = useState('All'); // All, Videos, PDFs
   const [modalVisible, setModalVisible] = useState(false);
   const [subjectName, setSubjectName] = useState('');
   const [topic, setTopic] = useState('');
@@ -56,29 +57,42 @@ export default function Home() {
     fetchSubjects();
   }, []);
 
-  // Handle search filtering
+  // Handle search and content type filtering
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredSubjects(subjects); // Show all subjects if search is empty
-      return;
+    let filtered = subjects;
+
+    // Apply content type filter
+    if (contentFilter !== 'All') {
+      filtered = Object.keys(subjects).reduce((acc, subjectName) => {
+        const filteredItems = subjects[subjectName].filter(item =>
+          contentFilter === 'Videos' ? item.fileType === 'Video' : item.fileType === 'Notes'
+        );
+        if (filteredItems.length > 0) {
+          acc[subjectName] = filteredItems;
+        }
+        return acc;
+      }, {});
     }
 
-    const lowerQuery = searchQuery.toLowerCase();
-    const filtered = Object.keys(subjects).reduce((acc, subjectName) => {
-      const matchesSubject = subjectName.toLowerCase().includes(lowerQuery);
-      const matchingItems = subjects[subjectName].filter(item =>
-        item.fileName.toLowerCase().includes(lowerQuery) ||
-        item.topic.toLowerCase().includes(lowerQuery)
-      );
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = Object.keys(filtered).reduce((acc, subjectName) => {
+        const matchesSubject = subjectName.toLowerCase().includes(lowerQuery);
+        const matchingItems = filtered[subjectName].filter(item =>
+          item.fileName.toLowerCase().includes(lowerQuery) ||
+          item.topic.toLowerCase().includes(lowerQuery)
+        );
 
-      if (matchesSubject || matchingItems.length > 0) {
-        acc[subjectName] = matchesSubject ? subjects[subjectName] : matchingItems;
-      }
-      return acc;
-    }, {});
+        if (matchesSubject || matchingItems.length > 0) {
+          acc[subjectName] = matchesSubject ? filtered[subjectName] : matchingItems;
+        }
+        return acc;
+      }, {});
+    }
 
     setFilteredSubjects(filtered);
-  }, [searchQuery, subjects]);
+  }, [searchQuery, contentFilter, subjects]);
 
   // Handle File Selection
   const pickFile = async () => {
@@ -155,6 +169,34 @@ export default function Home() {
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
+
+      {/* Content Type Filter */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, contentFilter === 'All' && styles.filterButtonActive]}
+          onPress={() => setContentFilter('All')}
+        >
+          <Text style={[styles.filterButtonText, contentFilter === 'All' && styles.filterButtonTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, contentFilter === 'Videos' && styles.filterButtonActive]}
+          onPress={() => setContentFilter('Videos')}
+        >
+          <Text style={[styles.filterButtonText, contentFilter === 'Videos' && styles.filterButtonTextActive]}>
+            Videos
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, contentFilter === 'PDFs' && styles.filterButtonActive]}
+          onPress={() => setContentFilter('PDFs')}
+        >
+          <Text style={[styles.filterButtonText, contentFilter === 'PDFs' && styles.filterButtonTextActive]}>
+            PDFs
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {Object.keys(filteredSubjects).length === 0 ? (
@@ -269,6 +311,33 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     fontSize: 16,
   },
+  filterContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  filterButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  filterButtonActive: {
+    backgroundColor: '#3498db',
+    borderColor: '#3498db',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+  },
+  filterButtonTextActive: {
+    color: '#fff',
+  },
   subjectCard: { backgroundColor: '#fff', borderRadius: 12, padding: 15, marginBottom: 15, elevation: 4 },
   subjectTitle: { fontSize: 22, fontWeight: '700', color: '#2c3e50', marginBottom: 10 },
   contentCard: { backgroundColor: '#f8f9fa', borderRadius: 8, padding: 12, marginTop: 8 },
@@ -286,27 +355,27 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 6
+    elevation: 6,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)'
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     width: '85%',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    elevation: 5
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#2c3e50',
     marginBottom: 15,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   input: {
     width: '100%',
@@ -316,65 +385,65 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderWidth: 1,
     borderColor: '#ddd',
-    fontSize: 16
+    fontSize: 16,
   },
   fileButton: {
     backgroundColor: '#3498db',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 15
+    marginBottom: 15,
   },
   fileButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   uploadButton: {
     backgroundColor: '#2ecc71',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 10
+    marginBottom: 10,
   },
   uploadButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   cancelButton: {
     backgroundColor: '#e74c3c',
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   uploadingIndicator: {
-    marginVertical: 15
+    marginVertical: 15,
   },
   videoContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000'
+    backgroundColor: '#000',
   },
   videoPlayer: {
     width: '100%',
-    height: '60%'
+    height: '60%',
   },
   closeButton: {
     marginTop: 20,
     padding: 10,
     backgroundColor: 'red',
-    borderRadius: 5
+    borderRadius: 5,
   },
   closeButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
 });

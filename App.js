@@ -1,19 +1,24 @@
-import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { auth } from './firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import Login from './screens/Login';
-import Signup from './screens/Signup';
-import Home from './screens/Home';
+import { ActivityIndicator, View } from 'react-native';
+import { auth } from './firebase';
+import AdminScreen from './screens/AdminScreen';
 import Chat from './screens/Chat';
 import Communities from './screens/Communities';
+import Home from './screens/Home';
+import Login from './screens/Login';
 import Profile from './screens/Profile';
-import AdminScreen from './screens/AdminScreen';
+import Signup from './screens/Signup';
 import TeacherSubjectContent from './screens/TeacherSubjectContent';
+// import SettingsScreen from './screens/SettingsScreen';
 import { Ionicons } from '@expo/vector-icons';
+import SettingsScreen from './screens/SettingsScreen';
+import ContactSupportScreen from './screens/support/ContactSupportScreen';
+import HelpCenterScreen from './screens/support/HelpCenterScreen';
+import PrivacyPolicyScreen from './screens/support/PrivayPolicyScreen';
+import TermsOfServiceScreen from './screens/support/TermsOfServiceScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -67,12 +72,34 @@ export default function App() {
           <Stack.Navigator>
             <Stack.Screen name="TabNavigator" component={TabNavigator} options={{ headerShown: false }} />
             <Stack.Screen name="TeacherSubjectContentScreen" component={TeacherSubjectContent} options={{ headerShown: false }} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen
+              name='HelpCenter'
+              component={HelpCenterScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name='ContactSupport'
+              component={ContactSupportScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name='TermsOfService'
+              component={TermsOfServiceScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name='PrivacyPolicy'
+              component={PrivacyPolicyScreen}
+              options={{ headerShown: false }}
+            />
           </Stack.Navigator>
         )
       ) : (
         <Stack.Navigator initialRouteName="Login">
           <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
           <Stack.Screen name="Signup" component={Signup} options={{ headerShown: false }} />
+          <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
         </Stack.Navigator>
       )}
     </NavigationContainer>

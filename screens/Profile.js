@@ -14,7 +14,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
-export default function Profile() {
+export default function Profile({ navigation }) {
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
@@ -187,9 +187,13 @@ export default function Profile() {
       )}
 
       {/* Logout Button */}
+      <TouchableOpacity style={styles.updateButton} onPress={() => navigation.navigate('Settings')}>
+        <Text style={styles.buttonText}>Settings</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
+      
     </View>
   );
 }
